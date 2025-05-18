@@ -16,7 +16,10 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libxml2-dev \
     git \
-    pkg-config
+    pkg-config \
+    python3 \
+    python3-pip \
+    nano
 
 # Set up Hadoop
 WORKDIR /opt
@@ -63,6 +66,13 @@ RUN ssh-keygen -t rsa -P '' -f /home/hdfs/.ssh/id_rsa && \
 USER root
 RUN echo "StrictHostKeyChecking no" >> /etc/ssh/ssh_config
 
+# Install RHadoop dependencies
+RUN R -e "install.packages(c('Rcpp', 'digest', 'RJSONIO', 'functional', 'stringr', 'httr', 'plyr', 'devtools'), repos='http://cran.rstudio.com/')"
+
+# Install Hadoop Streaming and rmr2
+RUN R -e "install.packages('rhdfs', repos='http://cran.rstudio.com/')"
+RUN R -e "install.packages('rmr2', repos='http://cran.rstudio.com/')"
+
 RUN chown -R hdfs:hadoop /opt/hadoop
 
 ENV HDFS_NAMENODE_USER=hdfs
@@ -70,6 +80,8 @@ ENV HDFS_DATANODE_USER=hdfs
 ENV HDFS_SECONDARYNAMENODE_USER=hdfs
 
 RUN echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /opt/hadoop/etc/hadoop/hadoop-env.sh
+
+# Also set JAVA_HOME explicitly in other Hadoop config files
 RUN echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /opt/hadoop/etc/hadoop/yarn-env.sh
 RUN echo "export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> /opt/hadoop/etc/hadoop/mapred-env.sh
 
@@ -92,8 +104,11 @@ RUN chown hdfs:hadoop /home/hdfs/.bashrc /home/hdfs/.profile
 EXPOSE 9870 8088 22
 
 # Start Hadoop services
+
 RUN mkdir -p /opt/hadoop/logs && \
     chown -R hdfs:hadoop /opt/hadoop/logs
+
+# Add this to your Dockerfile before the CMD instruction
 
 # Configure core-site.xml with proper fs.defaultFS setting
 RUN mkdir -p /tmp/hadoop-config && \
