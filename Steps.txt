@@ -1,0 +1,17 @@
+docker build -t rhadoopv2 .
+docker run -it --name r-hadoop-container -p 9870:9870 -p 8088:8088 -p 22:22 rhadoopv2
+docker exec -it r-hadoop-container bash
+
+# For wordcount streaming (copy these to inside the docker container)
+docker cp wordcount.R r-hadoop-container:/home/hdfs/wordCount.R
+docker cp amazonReviews.R r-hadoop-container:/home/hdfs/amazonReviews.R
+docker cp amazon_reviews.csv r-hadoop-container:/home/hdfs/amazon_reviews.csv
+
+## Run these in root
+chmod -R a+w /usr/local/lib/R/site-library
+
+## Run these in hdfs user
+
+hdfs dfs -rm -r /user/hdfs
+hdfs dfs -mkdir -p /user/hdfs
+hdfs dfs -put amazon_reviews.csv /user/hdfs/amazon_reviews.csv
